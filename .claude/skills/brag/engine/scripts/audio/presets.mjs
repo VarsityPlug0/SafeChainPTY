@@ -6,7 +6,7 @@
  */
 export const AUDIO_PRESETS = {
   luxury: {
-    voice: {local: 'rms', elevenlabs: 'deep calm male narrator', speed: 0.95, stability: 0.65, style: 0.15},
+    voice: {neural: 'am_fenrir', local: 'rms', elevenlabs: 'deep calm male narrator', speed: 0.95, stability: 0.65, style: 0.15},
     music: {volume: 0.16, duckVolume: 0.045},
     maxSfx: 3,
     sceneSfx: {
@@ -18,7 +18,7 @@ export const AUDIO_PRESETS = {
     transitionSfx: null,
   },
   streetwear: {
-    voice: {local: 'kal16', elevenlabs: 'energetic young male', speed: 1.0, stability: 0.4, style: 0.5},
+    voice: {neural: 'am_puck', local: 'kal16', elevenlabs: 'energetic young male', speed: 1.0, stability: 0.4, style: 0.5},
     music: {volume: 0.2, duckVolume: 0.05},
     maxSfx: 5,
     sceneSfx: {
@@ -34,7 +34,7 @@ export const AUDIO_PRESETS = {
     transitionSfx: null,
   },
   viral: {
-    voice: {local: 'kal16', elevenlabs: 'fast energetic young narrator', speed: 1.08, stability: 0.35, style: 0.6},
+    voice: {neural: 'am_puck', local: 'kal16', elevenlabs: 'fast energetic young narrator', speed: 1.08, stability: 0.35, style: 0.6},
     music: {volume: 0.2, duckVolume: 0.05},
     maxSfx: 7,
     sceneSfx: {
@@ -50,7 +50,7 @@ export const AUDIO_PRESETS = {
     transitionSfx: ['whoosh', 4, 0.35],
   },
   clean: {
-    voice: {local: 'slt', elevenlabs: 'clear friendly female narrator', speed: 1.0, stability: 0.55, style: 0.25},
+    voice: {neural: 'af_heart', local: 'slt', elevenlabs: 'clear friendly female narrator', speed: 1.0, stability: 0.55, style: 0.25},
     music: {volume: 0.15, duckVolume: 0.045},
     maxSfx: 4,
     sceneSfx: {
@@ -64,7 +64,7 @@ export const AUDIO_PRESETS = {
     transitionSfx: null,
   },
   sale: {
-    voice: {local: 'kal16', elevenlabs: 'energetic male announcer', speed: 1.05, stability: 0.35, style: 0.6},
+    voice: {neural: 'am_michael', local: 'kal16', elevenlabs: 'energetic male announcer', speed: 1.05, stability: 0.35, style: 0.6},
     music: {volume: 0.2, duckVolume: 0.055},
     maxSfx: 6,
     sceneSfx: {

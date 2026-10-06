@@ -63,6 +63,7 @@ export function spec(overrides = {}) {
   };
 }
 
+/** Tests use the robotic Flite voice: deterministic and always available. Neural voice has its own tests. */
 export const voiceScript = [
   {scene: 0, text: 'Dirty sneakers?'},
   {scene: 1, text: 'Meet the test kit.'},

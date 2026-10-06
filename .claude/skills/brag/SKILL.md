@@ -90,9 +90,11 @@ No mention of voice, voiceover, narration, music, sound or SFX → **omit `audio
 **Pick the voice provider:**
 - The user gave a recording → `"provider": "file"`, plus `audioFile` (one take for the whole ad; it is split at pauses to match your script lines).
 - The user asked for ElevenLabs/AI voice → `"provider": "elevenlabs"`. This needs `ELEVENLABS_API_KEY` in the environment; never write keys into files. Check with `test -n "$ELEVENLABS_API_KEY"`. If it's missing, **stop and tell the user**: they can set the key, give a recording, or accept the local DEMO voice. Don't silently switch providers.
-- Otherwise → `"provider": "local"`. This is an offline robotic voice, labelled **DEMO AUDIO** in the output. Say clearly that it's for timing tests, not production.
+- Otherwise → `"provider": "local"`. This is the natural-sounding offline neural voice (Kokoro, Apache-2.0, usable commercially), installed by setup. If it isn't installed, `local` falls back to the robotic Flite voice. The report then shows a warning and the label **DEMO AUDIO**; tell the user to run `bash .claude/skills/brag/engine/scripts/setup-voice.sh`.
 
-**`voice`:** pass the user's description ("energetic male", "deep calm", "female") or an ElevenLabs voice ID/name. If omitted, the style preset picks one.
+**`voice`:** pass the user's description ("energetic male", "deep calm", "female", "british"), an ElevenLabs voice ID/name, or a Kokoro voice ID (e.g. `am_puck`, `af_heart`, `bm_george`). If omitted, the style preset picks one.
+
+**Brand names** are often mispronounced. Brand presets can set `pronunciation` (BEVANSSONS → "Bevans Sons"), which applies to every spoken line automatically. Confirm the real pronunciation with the user.
 
 **Script** (when the user didn't give exact narration), one line per scene:
 - Use only verified facts: product name, brand, the user's price and CTA, or the user's own words. The truthfulness rules in section 2 apply to everything spoken.
@@ -193,7 +195,8 @@ If a SendUserFile tool is available, send `ad.mp4` (and the contact sheet) to th
 ## Audio troubleshooting
 
 - **"ELEVENLABS_API_KEY is not set"** → the user sets it (`export ELEVENLABS_API_KEY=…`, or the environment's secrets settings), gives a recording, or accepts `"provider": "local"`.
-- **"Local voiceover needs ffmpeg built with libflite"** → use ElevenLabs or a recorded file. Most Linux distro builds and the "full" Windows builds of ffmpeg include Flite.
+- **Voice sounds robotic** → the natural voice isn't installed, so it fell back to Flite. Run `bash .claude/skills/brag/engine/scripts/setup-voice.sh` (python3, ~120 MB), or use ElevenLabs or a recording.
+- **"Local voiceover needs ffmpeg built with libflite"** → only relevant for the Flite fallback.
 - **"Could not split the voice file into N phrases"** → the take plays continuously. Ask for clearer pauses between lines, or one file per line (`script[i].audioFile`).
 - **"Voice is not clearly louder than the music"** → lower `music.volume` / `music.duckVolume`.
 - **"Scenes re-timed … narration is longer than the requested duration"** → shorten the script.

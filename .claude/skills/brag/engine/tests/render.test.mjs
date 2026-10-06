@@ -6,7 +6,7 @@ import path from 'node:path';
 import {before, describe, test} from 'node:test';
 import {audioStream, byTitle, makeMusicFile, makeSfxFile, makeVoiceFile, meanDb, render, scenes, spec, tmp, voiceScript, writeSpecs} from './helpers.mjs';
 
-const local = (extra = {}) => ({provider: 'local', script: voiceScript, ...extra});
+const local = (extra = {}) => ({provider: 'flite', script: voiceScript, ...extra});
 let run;          // one CLI invocation renders all the "normal" cases (bundle once)
 let inputs;
 
@@ -29,9 +29,9 @@ before(() => {
       sfx: [{type: 'impact', scene: 0, offset: 0.1}, {type: 'whoosh', scene: 1}, {type: 'ding', scene: 2, offset: 0.3}, {type: 'cash', scene: 2, offset: 0.5}, {type: 'click', scene: 3, offset: 0.85}, {type: 'riser', time: 5.6, audioFile: inputs.ding, volume: 0.4}],
       music: {}}}),
     // voice at volume 0: the mix then contains only music, so ducking can be measured directly
-    'ducking-probe': spec({style: 'streetwear', audio: {voiceover: {provider: 'local', volume: 0, script: [voiceScript[0], {scene: 1, text: 'Meet the test kit, made for your favourite pairs.'}]}, music: {volume: 0.2, duckVolume: 0.05}, sfx: 'none'}}),
-    'audio-shorter': spec({style: 'clean', audio: {voiceover: {provider: 'local', script: [{scene: 0, text: 'Hi.'}]}, music: {}, sfx: 'none'}}),
-    'audio-longer': spec({style: 'streetwear', audio: {voiceover: {provider: 'local', script: [
+    'ducking-probe': spec({style: 'streetwear', audio: {voiceover: {provider: 'flite', volume: 0, script: [voiceScript[0], {scene: 1, text: 'Meet the test kit, made for your favourite pairs.'}]}, music: {volume: 0.2, duckVolume: 0.05}, sfx: 'none'}}),
+    'audio-shorter': spec({style: 'clean', audio: {voiceover: {provider: 'flite', script: [{scene: 0, text: 'Hi.'}]}, music: {}, sfx: 'none'}}),
+    'audio-longer': spec({style: 'streetwear', audio: {voiceover: {provider: 'flite', script: [
       {scene: 0, text: 'Your favourite sneakers took you everywhere this year, and now they need some care.'},
       {scene: 3, text: 'Shop now.'}]}, music: {}, sfx: 'auto'}}),
   };

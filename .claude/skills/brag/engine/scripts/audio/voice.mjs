@@ -3,11 +3,15 @@
  * loudness-normalised to -16 LUFS) plus their measured durations.
  *
  *   file        user-supplied recording(s)
- *   local       offline Flite TTS built into ffmpeg (robotic; labelled DEMO AUDIO)
+ *   neural      offline Kokoro-82M neural TTS (natural; installed by scripts/setup-voice.sh)
+ *   flite       offline Flite TTS built into ffmpeg (robotic; labelled DEMO AUDIO)
  *   elevenlabs  ElevenLabs API (needs ELEVENLABS_API_KEY)
+ *   ("local" = neural when installed, else flite)
  */
+import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {AudioError, duration, ff, hasFlite, silences, toWav} from './ffmpeg.mjs';
 import {localVoiceFor} from './presets.mjs';
 
@@ -40,6 +44,51 @@ export const localTts = (lines, {voice, speed, workDir}) => {
     const res = finish(raw, path.join(workDir, `voice-${i}.wav`), speed);
     fs.rmSync(raw, {force: true});
     fs.rmSync(txt, {force: true});
+    return res;
+  });
+};
+
+// ---------- neural (Kokoro) ----------
+const ENGINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const VOICE_DIR = path.join(ENGINE, '.voice');
+const PY = path.join(VOICE_DIR, 'venv', 'bin', 'python');
+
+export const neuralAvailable = () =>
+  !process.env.BRAG_DISABLE_NEURAL_VOICE
+  && fs.existsSync(PY)
+  && fs.existsSync(path.join(VOICE_DIR, 'models', 'kokoro-v1.0.int8.onnx'))
+  && fs.existsSync(path.join(VOICE_DIR, 'models', 'voices-v1.0.bin'));
+
+export const neuralSetupError = () =>
+  new AudioError('The natural local voice (Kokoro) is not installed. Run: bash .claude/skills/brag/engine/scripts/setup-voice.sh '
+    + '(needs python3 and ~120 MB download). Alternatives: ElevenLabs (ELEVENLABS_API_KEY), a recorded voice file, or provider "flite" (robotic DEMO voice).');
+
+/** Map a free-text request to one of Kokoro's best-rated voices (or accept a Kokoro voice id). */
+export const neuralVoiceFor = (request, presetVoice) => {
+  const r = (request || '').toLowerCase();
+  const id = r.match(/\b([abejfhipz][fm]_[a-z]+)\b/);
+  if (id) return id[1];
+  const female = /female|woman|girl|\bher\b|lady/.test(r);
+  const british = /british|uk\b|english accent|london/.test(r);
+  if (female) return british ? 'bf_emma' : 'af_heart';
+  if (british) return 'bm_george';
+  if (/deep|calm|cinematic|luxury|slow|baritone|warm/.test(r)) return 'am_fenrir';
+  if (/energetic|hype|fast|young|excited|upbeat/.test(r)) return 'am_puck';
+  if (/male|man|guy/.test(r)) return 'am_michael';
+  return presetVoice;
+};
+
+export const neuralTts = (lines, {voice, speed, workDir}) => {
+  if (!neuralAvailable()) throw neuralSetupError();
+  const job = {
+    voice, speed: speed || 1, lang: voice.startsWith('b') ? 'en-gb' : 'en-us',
+    lines: lines.map((l, i) => ({text: l.say ?? l.text, out: path.join(workDir, `voice-${i}.raw.wav`)})),
+  };
+  const r = spawnSync(PY, [path.join(ENGINE, 'scripts', 'audio', 'kokoro_tts.py')], {input: JSON.stringify(job), encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
+  if (r.status !== 0) throw new AudioError(`Neural voice failed: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-2).join(' ')}`);
+  return job.lines.map((l, i) => {
+    const res = finish(l.out, path.join(workDir, `voice-${i}.wav`), 1); // speed already applied by Kokoro
+    fs.rmSync(l.out, {force: true});
     return res;
   });
 };

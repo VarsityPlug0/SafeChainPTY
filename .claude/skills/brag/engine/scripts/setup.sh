@@ -14,4 +14,6 @@ for w in 400 600 800; do cp "$F/inter/files/inter-latin-$w-normal.woff2" public/
 for w in 700 900; do cp "$F/playfair-display/files/playfair-display-latin-$w-normal.woff2" public/fonts/; cp "$F/playfair-display/files/playfair-display-latin-$w-italic.woff2" public/fonts/; done
 # locally generated SFX + demo music (deterministic ffmpeg synthesis)
 node scripts/audio/library.mjs
+# natural offline voice (Kokoro, ~120 MB); optional — skip with BRAG_SKIP_NEURAL_VOICE=1
+if [ -z "${BRAG_SKIP_NEURAL_VOICE:-}" ]; then bash scripts/setup-voice.sh || echo "neural voice not installed — local voice will use the robotic Flite DEMO voice"; fi
 echo "brag engine ready"

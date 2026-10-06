@@ -1,6 +1,6 @@
 # /brag — motion-graphics ad skill for Claude Code
 
-`/brag <request>` turns a request like *"Make a 15 second Instagram ad for my sneaker cleaning kit. Price R299."* into a rendered, QA-checked MP4 (1080×1920 by default) plus a storyboard. Optional audio covers voiceover (ElevenLabs, local DEMO voice or your own recording), background music with ducking, and sound effects, all synced to the visuals and mixed into the MP4.
+`/brag <request>` turns a request like *"Make a 15 second Instagram ad for my sneaker cleaning kit. Price R299."* into a rendered, QA-checked MP4 (1080×1920 by default) plus a storyboard. Optional audio covers voiceover (ElevenLabs, a natural offline neural voice, or your own recording), background music with ducking, and sound effects, all synced to the visuals and mixed into the MP4.
 
 - `SKILL.md` — the workflow Claude follows (brief → concept → storyboard → copy → spec → render → QA → report)
 - `reference.md` — spec format, scene types, styles, components, QA checks

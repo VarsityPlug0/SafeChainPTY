@@ -9,6 +9,7 @@ import {test} from 'node:test';
 import {normalizeAudio, planAudio} from '../scripts/audio/plan.mjs';
 import {AUDIO_PRESETS} from '../scripts/audio/presets.mjs';
 import {makeMusicFile, makeVoiceFile, spec, tmp, voiceScript} from './helpers.mjs';
+import {neuralAvailable, neuralVoiceFor} from '../scripts/audio/voice.mjs';
 
 const ctx = (dir) => ({fps: 30, transition: 14 / 30, abs: (p) => path.resolve(dir, p), workDir: path.join(dir, 'audio'), publicPrefix: 'assets/test/audio'});
 const total = (s) => s.scenes.reduce((a, x) => a + x.duration, 0) - (14 / 30) * (s.scenes.length - 1);
@@ -31,7 +32,7 @@ test('legacy "audio": "file" is still accepted (music bed, full volume, no ducki
 });
 
 test('voice shorter than the scenes: planned visual timing is kept', async () => {
-  const s = spec({audio: {voiceover: {provider: 'local', script: [{scene: 0, text: 'Hi.'}]}, music: {}, sfx: 'none'}});
+  const s = spec({audio: {voiceover: {provider: 'flite', script: [{scene: 0, text: 'Hi.'}]}, music: {}, sfx: 'none'}});
   const planned = total(s);
   const plan = await planAudio(s, ctx(tmp('short')));
   assert.deepEqual(plan.errors, []);
@@ -43,7 +44,7 @@ test('voice shorter than the scenes: planned visual timing is kept', async () =>
 test('voice longer than expected: scenes are extended (speech is not stretched) and it is reported', async () => {
   const long = 'Meet the BEVANSSONS Sneaker Cleaning Kit, made for the pairs you wear every single day of the week.';
   const s = spec({scenes: [{type: 'hook', duration: 1.8, text: 'Hi'}, {type: 'final', duration: 3.2}],
-    audio: {voiceover: {provider: 'local', script: [{scene: 0, text: long}]}, sfx: 'none'}});
+    audio: {voiceover: {provider: 'flite', script: [{scene: 0, text: long}]}, sfx: 'none'}});
   const plan = await planAudio(s, ctx(tmp('long')));
   assert.deepEqual(plan.errors, []);
   const v = plan.voicePlaced[0];
@@ -56,7 +57,7 @@ test('voice longer than expected: scenes are extended (speech is not stretched) 
 
 test('sync "fixed" refuses to cut speech off', async () => {
   const s = spec({scenes: [{type: 'hook', duration: 1.8, text: 'Hi'}, {type: 'final', duration: 3.2}], audio: {sync: 'fixed',
-    voiceover: {provider: 'local', script: [{scene: 0, text: 'This sentence is far too long to fit inside a scene that lasts under two seconds.'}]}}});
+    voiceover: {provider: 'flite', script: [{scene: 0, text: 'This sentence is far too long to fit inside a scene that lasts under two seconds.'}]}}});
   const plan = await planAudio(s, ctx(tmp('fixed')));
   assert.ok(plan.errors.some((e) => /needs .*s but the scene is/.test(e)));
 });
@@ -161,7 +162,7 @@ test('a single user recording is split at its pauses and each phrase timed to it
 
 test('ducking ranges cover every voice line; music loops when shorter than the ad', async () => {
   const dir = tmp('duck');
-  const s = spec({audio: {voiceover: {provider: 'local', script: voiceScript}, music: {audioFile: makeMusicFile(dir, 3)}}});
+  const s = spec({audio: {voiceover: {provider: 'flite', script: voiceScript}, music: {audioFile: makeMusicFile(dir, 3)}}});
   const plan = await planAudio(s, ctx(dir));
   assert.deepEqual(plan.errors, []);
   assert.equal(plan.music.loop, true);
@@ -194,4 +195,43 @@ test('requested SFX past the end are trimmed or dropped, never overrun the video
   assert.equal(plan.sfx.length, 1);
   assert.ok(plan.sfx[0].start + plan.sfx[0].duration <= plan.total + 1e-6);
   assert.ok(plan.warnings.some((w) => /trimmed/.test(w)) && plan.warnings.some((w) => /dropped/.test(w)));
+});
+
+test('voice descriptions map to natural Kokoro voices', () => {
+  assert.equal(neuralVoiceFor('energetic male', 'am_michael'), 'am_puck');
+  assert.equal(neuralVoiceFor('deep calm', 'am_michael'), 'am_fenrir');
+  assert.equal(neuralVoiceFor('female', 'am_michael'), 'af_heart');
+  assert.equal(neuralVoiceFor('british woman', 'am_michael'), 'bf_emma');
+  assert.equal(neuralVoiceFor('use bm_lewis please', 'am_michael'), 'bm_lewis');
+  assert.equal(neuralVoiceFor(undefined, 'af_heart'), 'af_heart');
+});
+
+test('"local" uses the natural neural voice when installed, otherwise robotic Flite with a warning', {skip: !neuralAvailable() && 'neural voice not installed'}, async () => {
+  const s = spec({audio: {voiceover: {provider: 'local', voice: 'energetic male', script: voiceScript.slice(0, 2)}, sfx: 'none'}});
+  const plan = await planAudio(s, ctx(tmp('neural')));
+  assert.deepEqual(plan.errors, []);
+  assert.equal(plan.voiceInfo.engine, 'kokoro');
+  assert.equal(plan.voiceInfo.voice, 'kokoro:am_puck');
+  assert.equal(plan.voiceInfo.demo, false);
+  assert.equal(plan.resolved.label, null, 'natural voice is not labelled DEMO');
+  assert.ok(plan.voicePlaced.every((v) => v.duration > 0.4));
+  process.env.BRAG_DISABLE_NEURAL_VOICE = '1';
+  try {
+    const s2 = spec({audio: {voiceover: {provider: 'local', script: voiceScript.slice(0, 1)}, sfx: 'none'}});
+    const p2 = await planAudio(s2, ctx(tmp('fallback')));
+    assert.equal(p2.voiceInfo.engine, 'flite');
+    assert.match(p2.resolved.label, /DEMO AUDIO/);
+    assert.ok(p2.warnings.some((w) => /setup-voice\.sh/.test(w)));
+    const p3 = await planAudio(spec({audio: {voiceover: {provider: 'neural', script: voiceScript}}}), ctx(tmp('nn')));
+    assert.match(p3.errors[0], /not installed/);
+  } finally {
+    delete process.env.BRAG_DISABLE_NEURAL_VOICE;
+  }
+});
+
+test('brand pronunciation is used for spoken lines (on-screen text unchanged)', async () => {
+  const s = spec({brand: {name: 'BEVANSSONS', pronunciation: 'Bevans Sons'}, audio: {voiceover: {provider: 'flite', script: [{scene: 0, text: 'Shop now at BEVANSSONS.'}, {scene: 1, text: 'BEVANSSONS!', say: 'Custom.'}]}, sfx: 'none'}});
+  const plan = await planAudio(s, ctx(tmp('pron')));
+  assert.deepEqual(plan.errors, []);
+  assert.equal(plan.voicePlaced[0].text, 'Shop now at BEVANSSONS.', 'display text unchanged');
 });

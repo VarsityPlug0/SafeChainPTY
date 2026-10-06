@@ -9,7 +9,7 @@ import path from 'node:path';
 import {AUDIO_PRESETS, localVoiceFor} from './presets.mjs';
 import {AudioError, duration, toWav} from './ffmpeg.mjs';
 import {demoMusicFile, musicDescription, sfxFile, SFX_ALIASES, SFX_NAMES} from './library.mjs';
-import {elevenLabsTts, fileLines, fileSingle, localTts} from './voice.mjs';
+import {elevenLabsTts, fileLines, fileSingle, localTts, neuralAvailable, neuralSetupError, neuralTts, neuralVoiceFor} from './voice.mjs';
 
 const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|flac)$/i;
 const VOICE_EXT = /\.(mp3|wav|m4a)$/i;
@@ -92,20 +92,37 @@ export async function planAudio(spec, ctx) {
     } else if (vo.text) {
       lines = linesFromText(vo.text, n);
     }
+    // brand pronunciation (e.g. from the brand preset) applies to lines without an explicit "say"
+    const said = spec.brand?.pronunciation;
+    if (said && spec.brand?.name) {
+      const re = new RegExp(spec.brand.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      lines = lines.map((l) => (l.say || !re.test(l.text) ? l : {...l, say: l.text.replace(re, said)}));
+    }
     const userFile = vo.audioFile ? fileOk(vo.audioFile, VOICE_EXT, 'voiceover.audioFile') : null;
-    const provider = vo.provider ?? (vo.audioFile || (lines.length && lines.every((l) => l.audioFile)) ? 'file' : process.env.ELEVENLABS_API_KEY ? 'elevenlabs' : 'local');
-    if (!['file', 'local', 'elevenlabs'].includes(provider)) errors.push(`voiceover.provider must be "elevenlabs", "local" or "file"`);
+    const requested = vo.provider ?? (vo.audioFile || (lines.length && lines.every((l) => l.audioFile)) ? 'file' : process.env.ELEVENLABS_API_KEY ? 'elevenlabs' : 'local');
+    if (!['file', 'local', 'neural', 'flite', 'elevenlabs'].includes(requested)) errors.push(`voiceover.provider must be "elevenlabs", "local", "neural", "flite" or "file"`);
+    // "local" = the best offline voice available: natural neural voice if installed, else robotic Flite (DEMO)
+    let provider = requested;
+    if (requested === 'local') {
+      provider = neuralAvailable() ? 'neural' : 'flite';
+      if (provider === 'flite') warnings.push('Natural local voice not installed (run engine/scripts/setup-voice.sh) — using the robotic Flite DEMO voice.');
+    }
+    if (provider === 'neural' && !neuralAvailable()) errors.push(neuralSetupError().message);
     if (provider !== 'file' && !lines.length) errors.push('voiceover needs a script (voiceover.script lines with scene + text) or voiceover.text');
     if (provider === 'file' && !userFile && !(lines.length && lines.every((l) => l.audioFile))) errors.push('voiceover.provider "file" needs voiceover.audioFile (or an audioFile on every script line)');
-    if (!vo.provider && provider === 'local') warnings.push('No voice provider set and ELEVENLABS_API_KEY is not available: using the local DEMO voice (Flite).');
+    if (!vo.provider && requested === 'local') warnings.push(`No voice provider set and ELEVENLABS_API_KEY is not available: using the local ${provider === 'neural' ? 'neural voice (Kokoro)' : 'DEMO voice (Flite)'}.`);
     if (errors.length) return {enabled: true, errors, warnings};
 
     const speed = vo.speed ?? preset.voice.speed;
     try {
-      if (provider === 'local') {
+      if (provider === 'neural') {
+        const voice = neuralVoiceFor(vo.voice, preset.voice.neural);
+        segments = neuralTts(lines, {voice, speed, workDir}).map((s, i) => ({...s, scene: lines[i].scene, text: lines[i].text}));
+        voiceInfo = {provider: requested === 'local' ? 'local' : 'neural', engine: 'kokoro', voice: `kokoro:${voice}`, demo: false};
+      } else if (provider === 'flite') {
         const voice = localVoiceFor(vo.voice, preset.voice.local);
         segments = localTts(lines, {voice, speed, workDir}).map((s, i) => ({...s, scene: lines[i].scene, text: lines[i].text}));
-        voiceInfo = {provider, voice: `flite:${voice}`, demo: true};
+        voiceInfo = {provider: requested === 'local' ? 'local' : 'flite', engine: 'flite', voice: `flite:${voice}`, demo: true};
       } else if (provider === 'elevenlabs') {
         const emo = emotionSettings(vo.emotion);
         const res = await elevenLabsTts(lines, {
