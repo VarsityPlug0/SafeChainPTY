@@ -1,0 +1,41 @@
+{
+  "title": "Concept C — Black Friday",
+  "concept": "Black Friday event framing. No discount was supplied, so none is stated — the event name and the real price only.",
+  "style": "sale",
+  "brand": {
+    "name": "BEVANSSONS"
+  },
+  "product": {
+    "name": "Sneaker Cleaning Kit",
+    "price": "R299",
+    "images": [
+      "sample-product.png"
+    ]
+  },
+  "cta": {
+    "text": "Shop Now"
+  },
+  "scenes": [
+    {
+      "type": "sale",
+      "duration": 2.6,
+      "text": "Black *Friday*",
+      "subtext": "BEVANSSONS"
+    },
+    {
+      "type": "productReveal",
+      "duration": 2.6,
+      "headline": "Sneaker Cleaning Kit"
+    },
+    {
+      "type": "price",
+      "duration": 2.6,
+      "label": "Now"
+    },
+    {
+      "type": "final",
+      "duration": 4.0,
+      "headline": "Black Friday at BEVANSSONS"
+    }
+  ]
+}

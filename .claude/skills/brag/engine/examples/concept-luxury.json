@@ -1,0 +1,51 @@
+{
+  "title": "Concept A — Luxury",
+  "concept": "Quiet, premium pacing: brand mark, a single line of copy, slow reveal, features, end card.",
+  "style": "luxury",
+  "brand": {
+    "name": "BEVANSSONS",
+    "website": "bevanssons.example"
+  },
+  "product": {
+    "name": "Aurora Desk Lamp",
+    "price": "R1 450"
+  },
+  "cta": {
+    "text": "Shop Now"
+  },
+  "transition": {
+    "type": "auto",
+    "duration": 0.6
+  },
+  "scenes": [
+    {
+      "type": "logo",
+      "duration": 2.4,
+      "tagline": "Test brand preset"
+    },
+    {
+      "type": "statement",
+      "duration": 2.6,
+      "text": "Light, *considered.*",
+      "subtext": "Aurora Desk Lamp"
+    },
+    {
+      "type": "productReveal",
+      "duration": 3.0
+    },
+    {
+      "type": "features",
+      "duration": 3.4,
+      "title": "Details",
+      "items": [
+        "Brushed aluminium body",
+        "Warm 2700K light",
+        "USB-C powered"
+      ]
+    },
+    {
+      "type": "final",
+      "duration": 4.2
+    }
+  ]
+}

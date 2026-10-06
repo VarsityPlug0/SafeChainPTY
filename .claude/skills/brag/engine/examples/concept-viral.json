@@ -1,0 +1,49 @@
+{
+  "title": "Concept B — Viral",
+  "concept": "Fast cuts, punch-zoom transitions, pop typography, direct CTA.",
+  "style": "viral",
+  "brand": {
+    "name": "BEVANSSONS"
+  },
+  "product": {
+    "name": "Sneaker Cleaning Kit",
+    "price": "R299",
+    "images": [
+      "sample-product.png"
+    ]
+  },
+  "cta": {
+    "text": "Shop Now"
+  },
+  "transition": {
+    "type": "auto",
+    "duration": 0.35
+  },
+  "scenes": [
+    {
+      "type": "hook",
+      "duration": 2.4,
+      "text": "POV: your *white* sneakers",
+      "subtext": "...after one weekend"
+    },
+    {
+      "type": "productReveal",
+      "duration": 2.6,
+      "headline": "Enter the *kit*"
+    },
+    {
+      "type": "productZoom",
+      "duration": 2.2
+    },
+    {
+      "type": "price",
+      "duration": 2.4,
+      "label": "Just"
+    },
+    {
+      "type": "cta",
+      "duration": 3.2,
+      "headline": "Your pairs will *thank you*"
+    }
+  ]
+}

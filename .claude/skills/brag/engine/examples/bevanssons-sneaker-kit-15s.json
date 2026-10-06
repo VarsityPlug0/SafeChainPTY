@@ -1,0 +1,54 @@
+{
+  "title": "BEVANSSONS Sneaker Cleaning Kit — 15s Reel (photo)",
+  "concept": "Question hook, the kit revealed, a push-in on the product, a before/after using the customer's own photos, the price, then the end card.",
+  "style": "streetwear",
+  "brand": {
+    "name": "BEVANSSONS"
+  },
+  "product": {
+    "name": "Sneaker Cleaning Kit",
+    "price": "R299",
+    "images": [
+      "sample-product.png"
+    ]
+  },
+  "cta": {
+    "text": "Shop Now"
+  },
+  "scenes": [
+    {
+      "type": "hook",
+      "duration": 2.6,
+      "text": "Dirty *kicks?*",
+      "subtext": "Meet the BEVANSSONS Sneaker Cleaning Kit"
+    },
+    {
+      "type": "productReveal",
+      "duration": 2.8,
+      "headline": "The *kit*"
+    },
+    {
+      "type": "productZoom",
+      "duration": 2.4,
+      "text": "Built for your *pairs*"
+    },
+    {
+      "type": "beforeAfter",
+      "duration": 3.2,
+      "before": "sample-before.png",
+      "after": "sample-after.png",
+      "caption": "Before. *After.*"
+    },
+    {
+      "type": "price",
+      "duration": 2.4,
+      "label": "Only",
+      "caption": "Sneaker Cleaning Kit"
+    },
+    {
+      "type": "final",
+      "duration": 4.0,
+      "headline": "Sneaker Cleaning Kit"
+    }
+  ]
+}

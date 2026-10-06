@@ -1,0 +1,11 @@
+{
+  "_note": "Copy to <brand-name-lowercase-with-dashes>.json (e.g. acme-co.json). Any field can be omitted. colors override the chosen style's palette. displayFont/bodyFont: anton | archivo | inter | playfair. Only add handle/website if they are real.",
+  "name": "Brand Name",
+  "defaultStyle": "clean",
+  "colors": {"bg": "#0b0b0b", "bg2": "#1d1b18", "accent": "#d8b46a", "accent2": "#ffffff", "text": "#ffffff"},
+  "displayFont": "anton",
+  "bodyFont": "inter",
+  "handle": "@brand",
+  "website": "brand.example",
+  "logo": "brand-logo.png"
+}

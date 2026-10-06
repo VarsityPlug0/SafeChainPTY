@@ -1,0 +1,7 @@
+{
+  "_note": "PLACEHOLDER brand values. Replace colors with BEVANSSONS' real brand colours, and set \"logo\" to a logo file (path relative to this folder or absolute), plus handle/website if you want them on the end card.",
+  "name": "BEVANSSONS",
+  "defaultStyle": "luxury",
+  "colors": {"bg": "#0b0b0b", "bg2": "#1d1b18", "accent": "#d8b46a", "accent2": "#f4efe6", "text": "#f7f3ea"},
+  "logo": null
+}
