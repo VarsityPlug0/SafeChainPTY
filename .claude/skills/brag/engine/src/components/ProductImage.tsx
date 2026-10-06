@@ -67,7 +67,7 @@ export const PlaceholderProduct: React.FC<{height: number}> = ({height}) => {
 export const ProductImage: React.FC<{height: number; index?: number; floating?: boolean; shadow?: boolean}> = ({
   height, index = 0, floating = true, shadow = true,
 }) => {
-  const {spec} = useAd();
+  const {spec, theme} = useAd();
   const frame = useCurrentFrame();
   const {width} = useVideoConfig();
   const u = width / 1080;
@@ -77,7 +77,16 @@ export const ProductImage: React.FC<{height: number; index?: number; floating?: 
   return (
     <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
       <div style={{transform: `translateY(${y}px)`}}>
-        {src ? (
+        {src && spec.product.imageFrame === 'card' ? (
+          <Img
+            src={staticFile(src)}
+            style={{
+              height, maxWidth: width * 0.86, objectFit: 'cover', display: 'block', borderRadius: 36 * u,
+              border: `${2 * u}px solid ${theme.accent}66`,
+              boxShadow: shadow ? `0 ${30 * u}px ${60 * u}px rgba(0,0,0,0.5)` : 'none',
+            }}
+          />
+        ) : src ? (
           <Img
             src={staticFile(src)}
             style={{

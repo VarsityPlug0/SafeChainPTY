@@ -16,7 +16,8 @@ export const LogoReveal: React.FC<{size?: number; delay?: number; tagline?: stri
     const wipe = progress(f, 0, 20);
     return (
       <div style={{clipPath: `inset(0 ${(1 - wipe) * 100}% 0 0)`, transform: `scale(${interpolate(wipe, [0, 1], [1.08, 1])})`}}>
-        <Img src={staticFile(spec.brand.logo)} style={{height: 150 * u * size, maxWidth: 820 * u, objectFit: 'contain'}} />
+        {/* sized by width with a height cap, so wide crest+wordmark logos read as well as compact marks */}
+        <Img src={staticFile(spec.brand.logo)} style={{width: 640 * u * size, maxHeight: 360 * u * size, objectFit: 'contain', display: 'block'}} />
       </div>
     );
   }

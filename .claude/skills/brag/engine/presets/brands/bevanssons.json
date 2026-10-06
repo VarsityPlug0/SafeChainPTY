@@ -1,14 +1,14 @@
 {
-  "_note": "PLACEHOLDER brand values. Replace colors with BEVANSSONS' real brand colours, and set \"logo\" to a logo file (path relative to this folder or absolute), plus handle/website if you want them on the end card. \"pronunciation\" is how voiceovers say the brand name \u2014 confirm with the client.",
+  "_note": "Colours from the store's own design system (bevans-store client/tailwind.config.js: brand.black/dark/gold/light). Pronunciation matches the site title 'Bevans Sons'. Logo: pass brand.logo in the spec (the logo file is not committed to this public repo). Website/handle only if wanted on the end card.",
   "name": "BEVANSSONS",
+  "pronunciation": "Bevans Sons",
   "defaultStyle": "luxury",
   "colors": {
-    "bg": "#0b0b0b",
-    "bg2": "#1d1b18",
-    "accent": "#d8b46a",
-    "accent2": "#f4efe6",
-    "text": "#f7f3ea"
+    "bg": "#111111",
+    "bg2": "#1D1D1D",
+    "accent": "#C8B993",
+    "accent2": "#F5F5F5",
+    "text": "#F5F5F5"
   },
-  "logo": null,
-  "pronunciation": "Bevans Sons"
+  "logo": null
 }

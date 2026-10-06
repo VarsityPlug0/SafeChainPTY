@@ -66,7 +66,7 @@ All take their colours and fonts from the active style (`useAd()`), sizes scale 
 | `Background` | Gradient, two parallax light layers, style pattern (grid/stripes/rays/orbs), animated film grain, vignette |
 | `KineticText` | Word-by-word typography: `rise` (masked), `slam`, `pop`, `fade`. Auto-size/wrap; `*highlight*` support; DOM width QA |
 | `Hook` | Opening scroll-stopper built from KineticText |
-| `ProductImage` / `PlaceholderProduct` | User photo (contain-fit, shadow, idle float) or a branded 3D placeholder package tagged DEMO |
+| `ProductImage` / `PlaceholderProduct` | User photo (contain-fit, shadow, idle float; `product.imageFrame: "card"` gives photos with a background a rounded, gold-edged frame) or a branded 3D placeholder package tagged DEMO |
 | `ProductReveal` | Circular mask reveal + settle + light sweep |
 | `ProductZoom` | Camera push-in with parallax layers |
 | `PriceBadge` | Rotating starburst, spring pop, exact price |

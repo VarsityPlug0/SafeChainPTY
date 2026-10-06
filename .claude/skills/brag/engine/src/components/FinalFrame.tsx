@@ -19,7 +19,7 @@ export const FinalFrame: React.FC<{headline?: string}> = ({headline}) => {
   const productH = height * 0.3;
   return (
     <SafeArea justify="space-between">
-      <LogoReveal size={0.7} />
+      <LogoReveal size={spec.brand.logo ? 0.62 : 0.7} />
       <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 * u, width: '100%'}}>
         <div style={{transform: `scale(${0.85 + p * 0.15})`, opacity: p}}>
           <ProductImage height={productH} />

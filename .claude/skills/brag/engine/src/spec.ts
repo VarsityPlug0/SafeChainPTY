@@ -19,6 +19,7 @@ export type Product = {
   name: string;
   price?: string;                // shown exactly as given, e.g. "R299"
   images?: string[];             // resolved paths; empty => placeholder product
+  imageFrame?: 'none' | 'card';  // 'card' = rounded, bordered frame for photos that have a background
 };
 
 export type Scene =
