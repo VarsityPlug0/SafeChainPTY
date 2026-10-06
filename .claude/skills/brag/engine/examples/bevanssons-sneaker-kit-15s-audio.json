@@ -1,0 +1,80 @@
+{
+  "title": "BEVANSSONS Sneaker Cleaning Kit — 15s with audio",
+  "concept": "Sound-on version: spoken hook, kit reveal, push-in, spoken price, end card; music ducks under every line, effects land on the reveal, price and CTA.",
+  "style": "streetwear",
+  "brand": {
+    "name": "BEVANSSONS"
+  },
+  "product": {
+    "name": "Sneaker Cleaning Kit",
+    "price": "R299",
+    "images": [
+      "sample-product.png"
+    ]
+  },
+  "cta": {
+    "text": "Shop Now"
+  },
+  "scenes": [
+    {
+      "type": "hook",
+      "duration": 2.8,
+      "text": "Dirty *kicks?*",
+      "subtext": "Meet the BEVANSSONS Sneaker Cleaning Kit"
+    },
+    {
+      "type": "productReveal",
+      "duration": 3.3,
+      "headline": "The *kit*"
+    },
+    {
+      "type": "productZoom",
+      "duration": 3.0,
+      "text": "Built for your *pairs*"
+    },
+    {
+      "type": "price",
+      "duration": 3.1,
+      "label": "Only",
+      "caption": "Sneaker Cleaning Kit"
+    },
+    {
+      "type": "final",
+      "duration": 4.67,
+      "headline": "Sneaker Cleaning Kit"
+    }
+  ],
+  "audio": {
+    "voiceover": {
+      "provider": "local",
+      "voice": "energetic male",
+      "script": [
+        {
+          "scene": 0,
+          "text": "Dirty sneakers?"
+        },
+        {
+          "scene": 1,
+          "text": "Meet the BEVANSSONS Sneaker Cleaning Kit."
+        },
+        {
+          "scene": 2,
+          "text": "Give your favourite pairs some love."
+        },
+        {
+          "scene": 3,
+          "text": "Only R299.",
+          "say": "Only two hundred and ninety-nine rand."
+        },
+        {
+          "scene": 4,
+          "text": "Shop now at BEVANSSONS."
+        }
+      ]
+    },
+    "music": {
+      "audioFile": "demo"
+    },
+    "sfx": "auto"
+  }
+}

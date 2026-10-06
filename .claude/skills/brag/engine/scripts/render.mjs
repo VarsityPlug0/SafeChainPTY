@@ -13,6 +13,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {normalizeAudio, planAudio} from './audio/plan.mjs';
+import {auditAudio, exportStems} from './audio/qa.mjs';
 
 const ENGINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCENE_TYPES = ['hook', 'statement', 'productReveal', 'productZoom', 'features', 'beforeAfter', 'price', 'sale', 'logo', 'cta', 'final'];
@@ -25,13 +27,15 @@ const argv = process.argv.slice(2);
 const specs = [];
 let outBase = process.env.BRAG_OUTPUT_DIR || path.join(process.cwd(), 'brag-output');
 let concurrency = os.cpus().length;
+let reportFile = null;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--out') outBase = path.resolve(argv[++i]);
+  else if (argv[i] === '--report') reportFile = path.resolve(argv[++i]);
   else if (argv[i] === '--concurrency') concurrency = Number(argv[++i]);
   else specs.push(path.resolve(argv[i]));
 }
 if (!specs.length) {
-  console.error('Usage: node scripts/render.mjs <spec.json> [more...] [--out <dir>]');
+  console.error('Usage: node scripts/render.mjs <spec.json> [more...] [--out <dir>] [--report <reports.json>] [--concurrency N]');
   process.exit(2);
 }
 
@@ -119,7 +123,6 @@ function prepare(specPath, runId) {
   };
   spec.product.images = (spec.product?.images || []).map((p, i) => asset(p, 'image', `product.images[${i}]`));
   if (spec.brand?.logo) spec.brand.logo = asset(spec.brand.logo, 'image', 'brand.logo');
-  if (spec.audio) spec.audio = asset(spec.audio, 'audio', 'audio');
 
   const fps = spec.format?.fps ?? 30;
   (spec.scenes || []).forEach((s, i) => {
@@ -151,12 +154,39 @@ function prepare(specPath, runId) {
     spec.demo = true;
     warnings.push('No product image supplied — rendering a DEMO placeholder product');
   }
-  return {spec, errors, warnings, assetDir, expected: {frames, seconds, fps, width: spec.format?.width ?? 1080, height: spec.format?.height ?? 1920}};
+  return {spec, errors, warnings, assetDir, specDir, expected: {frames, seconds, fps, width: spec.format?.width ?? 1080, height: spec.format?.height ?? 1920}};
+}
+
+// ---------- audio (optional) ----------
+const transitionFrames = (spec, fps) => Math.round((spec.transition?.type === 'none' ? 0 : spec.transition?.duration ?? 0.45) * fps);
+
+async function prepareAudio(job, index) {
+  if (!normalizeAudio(job.spec)) return; // visual-only: nothing changes
+  const fps = job.expected.fps;
+  const tf = transitionFrames(job.spec, fps);
+  const plan = await planAudio(job.spec, {
+    fps,
+    transition: tf / fps,
+    abs: (p) => (path.isAbsolute(p) ? p : path.resolve(job.specDir, p)),
+    workDir: path.join(job.assetDir, `audio-${index}`),
+    publicPrefix: `assets/${runId}/audio-${index}`,
+  });
+  job.errors.push(...(plan.errors ?? []));
+  job.warnings.push(...(plan.warnings ?? []));
+  if (!plan.enabled || plan.errors?.length) return;
+  job.audioPlan = plan;
+  job.spec.audioResolved = plan.resolved;
+  // scenes may have been re-timed to the narration
+  const frames = job.spec.scenes.reduce((a, sc) => a + Math.round(sc.duration * fps), 0) - tf * Math.max(0, job.spec.scenes.length - 1);
+  job.expected.frames = frames;
+  job.expected.seconds = frames / fps;
+  if (job.expected.seconds > 60) job.errors.push(`Total duration ${job.expected.seconds.toFixed(2)}s exceeds 60s`);
+  else if (job.expected.seconds < 10 || job.expected.seconds > 20) job.warnings.push(`Final duration ${job.expected.seconds.toFixed(2)}s is outside the recommended 10–20s`);
 }
 
 // ---------- storyboard ----------
-function storyboard(spec, fps) {
-  const t = spec.transition?.type === 'none' ? 0 : spec.transition?.duration ?? 0.45;
+function storyboard(spec, fps, audioPlan = null) {
+  const t = transitionFrames(spec, fps) / fps; // what Remotion actually uses
   let start = 0;
   const rows = spec.scenes.map((s, i) => {
     const from = start;
@@ -175,19 +205,53 @@ function storyboard(spec, fps) {
     '|---|------|-------|----------------|-----------|',
     ...rows,
     '',
-    `Transitions: ${spec.transition?.type ?? 'auto (from style)'}, ${t}s each. Format: ${spec.format?.width ?? 1080}×${spec.format?.height ?? 1920} @ ${fps}fps.`,
+    `Transitions: ${spec.transition?.type ?? 'auto (from style)'}, ${t.toFixed(3)}s each. Format: ${spec.format?.width ?? 1080}×${spec.format?.height ?? 1920} @ ${fps}fps.`,
+    '',
+    '## Scene by scene',
+    audioPlan?.resolved?.label ? `\n> ${audioPlan.resolved.label}: placeholder audio for testing, not final production audio.\n` : '',
+    audioPlan ? `Audio: voice ${audioPlan.voiceInfo ? `${audioPlan.voiceInfo.provider} (${audioPlan.voiceInfo.voice})` : '—'} · music ${audioPlan.music ? `${audioPlan.music.source}, volume ${audioPlan.music.volume}${audioPlan.music.duck ? `, ducked to ${audioPlan.music.duckVolume} under voice` : ''}` : '—'} · ${audioPlan.sfx.length} sound effect(s) · sync: ${audioPlan.timeline.sync.mode}` : 'Audio: none (visual-only ad).',
+    '',
+    ...sceneBlocks(spec, t, audioPlan),
   ].join('\n');
+}
+
+function sceneBlocks(spec, t, audioPlan) {
+  let start = 0;
+  return spec.scenes.flatMap((s, i) => {
+    const from = start;
+    const to = from + s.duration;
+    start = to - t;
+    const text = [s.text, s.subtext, s.headline, s.title, s.caption, s.label, s.tagline, ...(s.items || [])].filter(Boolean).join(' / ');
+    const note = audioPlan?.notes?.[i] ?? {voice: '—', music: '—', sfx: '—'};
+    return [
+      `**${from.toFixed(2)}–${to.toFixed(2)}s · ${i + 1}. ${s.type}**`,
+      `- VISUAL: ${s.type}${text ? ` — "${text}"` : ''}${s.notes ? ` (${s.notes})` : ''}`,
+      `- VOICE: ${note.voice}`,
+      `- MUSIC: ${note.music}`,
+      `- SFX: ${note.sfx}`,
+      '',
+    ];
+  });
 }
 
 // ---------- main ----------
 const browserExecutable = findBrowser();
 const runId = `${Date.now()}`;
 const prepared = specs.map((p) => ({path: p, ...prepare(p, runId)}));
+// audio is generated before bundling (the bundle snapshots public/)
+for (const [i, job] of prepared.entries()) {
+  if (job.errors.length) continue;
+  try {
+    await prepareAudio(job, i);
+  } catch (err) {
+    job.errors.push(`Audio preparation failed: ${err.message}`);
+  }
+}
 const reports = [];
 let serveUrl = null;
 
 for (const job of prepared) {
-  const report = {spec: job.path, ok: false, errors: [...job.errors], warnings: [...job.warnings], qa: []};
+  const report = {spec: job.path, ok: false, errors: [...job.errors], warnings: [...job.warnings], qa: [], audio: null};
   reports.push(report);
   if (job.errors.length) continue;
   const {spec, expected} = job;
@@ -247,7 +311,7 @@ for (const job of prepared) {
     if (!report.qa.some((e) => e.type === 'cta-visible')) report.errors.push('The CTA never became fully visible');
 
     // ---- QA frames: middle of each scene + final frame, and a contact sheet ----
-    const t = spec.transition?.type === 'none' ? 0 : spec.transition?.duration ?? 0.45;
+    const t = transitionFrames(spec, expected.fps) / expected.fps;
     let start = 0;
     const times = spec.scenes.map((s) => { const mid = start + s.duration * 0.62; start += s.duration - t; return mid; });
     times.forEach((sec, i) => {
@@ -268,15 +332,35 @@ for (const job of prepared) {
     // ---- write spec + storyboard ----
     fs.writeFileSync(path.join(outDir, 'spec.resolved.json'), JSON.stringify(spec, null, 2));
     fs.copyFileSync(job.path, path.join(outDir, 'spec.json'));
-    fs.writeFileSync(path.join(outDir, 'storyboard.md'), storyboard(spec, expected.fps));
+    // ---- audio QA + stems ----
+    if (job.audioPlan) {
+      const audit = auditAudio(video, job.audioPlan, {fps: expected.fps, videoDuration: duration});
+      report.errors.push(...audit.errors);
+      report.warnings.push(...audit.warnings);
+      exportStems(job.audioPlan, path.join(outDir, 'audio'));
+      const ap = job.audioPlan;
+      report.audio = {
+        label: ap.resolved.label,
+        voice: ap.voiceInfo && {...ap.voiceInfo, lines: ap.voicePlaced.length},
+        music: ap.music && {source: ap.music.source, volume: ap.music.volume, duckVolume: ap.music.duckVolume, ducking: ap.music.duck},
+        sfx: ap.sfx.map((x) => `${x.type}@${x.start}s`),
+        sync: ap.timeline.sync,
+        metrics: audit.metrics,
+        files: fs.readdirSync(path.join(outDir, 'audio')),
+      };
+    } else if (probe.streams.some((s) => s.codec_type === 'audio')) {
+      report.warnings.push('Visual-only ad unexpectedly contains an audio stream');
+    }
+    fs.writeFileSync(path.join(outDir, 'storyboard.md'), storyboard(spec, expected.fps, job.audioPlan));
     report.ok = report.errors.length === 0;
   } catch (err) {
     report.errors.push(`Render failed: ${err.message}`);
-  } finally {
-    fs.rmSync(job.assetDir, {recursive: true, force: true});
   }
   if (report.outDir) fs.writeFileSync(path.join(report.outDir, 'report.json'), JSON.stringify(report, null, 2));
 }
+
+// copied/generated assets live in public/ only for the duration of this run
+fs.rmSync(path.join(ENGINE, 'public', 'assets', runId), {recursive: true, force: true});
 
 // ---------- summary ----------
 console.log('\n=== /brag report ===');
@@ -284,8 +368,10 @@ for (const r of reports) {
   console.log(`\n${r.ok ? 'PASS' : 'FAIL'}  ${r.spec}`);
   if (r.video) console.log(`  video:      ${r.video}`);
   if (r.file) console.log(`  file:       ${r.file.width}×${r.file.height}, ${r.file.duration.toFixed(2)}s, ${r.file.codec}, ${(r.file.bytes / 1e6).toFixed(2)} MB`);
+  if (r.audio) console.log(`  audio:      ${r.audio.metrics.codec} ${r.audio.metrics.sampleRate} Hz ${r.audio.metrics.channels}ch, ${r.audio.metrics.audioDuration}s · voice ${r.audio.voice ? `${r.audio.voice.provider} (${r.audio.voice.lines} lines)` : '—'} · music ${r.audio.music ? (r.audio.music.ducking ? 'ducked' : 'on') : '—'} · ${r.audio.sfx.length} sfx${r.audio.label ? ` · ${r.audio.label}` : ''}\n  timeline:   ${path.join(r.outDir, 'audio', 'audio-timeline.json')}`);
   if (r.outDir) console.log(`  storyboard: ${path.join(r.outDir, 'storyboard.md')}\n  qa sheet:   ${path.join(r.outDir, 'qa', 'contact-sheet.jpg')}`);
   for (const e of r.errors) console.log(`  ERROR   ${e}`);
   for (const w of r.warnings) console.log(`  warning ${w}`);
 }
+if (reportFile) fs.writeFileSync(reportFile, JSON.stringify(reports, null, 2));
 process.exit(reports.every((r) => r.ok) ? 0 : 1);

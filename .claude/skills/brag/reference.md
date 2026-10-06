@@ -18,7 +18,7 @@
   "product": {"name": "required", "price": "as given, e.g. R299", "images": ["path.png", "…"]},
   "cta": {"text": "Shop Now", "detail": "optional line under the button, e.g. a real URL"},
   "transition": {"type": "auto | slide | wipe | zoom | fade | none", "duration": 0.45},
-  "audio": "optional path to licensed music/voice-over (mp3/wav/m4a)",
+  "audio": { /* optional — see "Audio" below; omit for a silent, visual-only ad */ },
   "scenes": [ /* see below */ ]
 }
 ```
@@ -91,6 +91,82 @@ All take their colours and fonts from the active style (`useAd()`), sizes scale 
   - ffprobe checks the codec (H.264), resolution, and duration (±1.5 frames) and that the file isn't suspiciously small;
   - a frame from the middle of each scene and the very last frame are extracted, along with a contact sheet.
 
+## Audio
+
+Optional. With no `audio` section, `null`, or `"enabled": false`, the ad renders exactly as a silent, visual-only ad. The legacy form `"audio": "song.mp3"` still works: one music bed at full volume with short fades.
+
+```jsonc
+"audio": {
+  "enabled": true,
+  "preset": "streetwear",              // audio preset; default = style
+  "sync": "voice",                      // "voice" (default): scenes follow the narration | "fixed": error if a line doesn't fit
+  "voiceover": {
+    "provider": "local | elevenlabs | file",   // default: file if audioFile, elevenlabs if ELEVENLABS_API_KEY, else local (DEMO)
+    "voice": "energetic male",          // ElevenLabs id/name/description, or Flite voice kal16 | rms | slt | awb
+    "script": [{"scene": 0, "text": "Dirty sneakers?"}, {"scene": 3, "text": "Only R299.", "say": "Only two hundred and ninety-nine rand."}],
+    "text": "…",                        // alternative to script: sentences are spread over the scenes in order
+    "audioFile": "voiceover.mp3",       // provider "file": one take (split at pauses), or per line: script[i].audioFile
+    "speed": 1.0, "volume": 1.0, "emotion": "energetic", "model": "eleven_multilingual_v2"
+  },
+  "music": {"audioFile": "music.mp3 | demo", "volume": 0.18, "duckVolume": 0.05, "duckUnderVoice": true, "loop": true, "fadeIn": 0.6, "fadeOut": 1.2, "startAt": 0},
+  "sfx": "auto",                        // "auto" | "none" | [{"type": "whoosh", "time": 2.1} | {"type": "cash", "scene": 3, "offset": 0.4, "volume": 0.5, "audioFile": "my.wav"}]
+  "sfxLibrary": {"whoosh": "my-sfx/whoosh.wav"},   // replace/add named effects
+  "maxSfx": 5
+}
+```
+
+**Pipeline** (`scripts/audio/`, runs inside `render.mjs` before bundling):
+
+1. **Voice.** Each script line becomes its own clip:
+   - `local`: Flite TTS built into ffmpeg; robotic, labelled DEMO AUDIO.
+   - `elevenlabs`: one request per line, with previous/next text for natural prosody.
+   - `file`: the take is split at pauses, one phrase per line; if that's impossible it plays as one continuous take.
+
+   Clips are trimmed of silence, converted to 48 kHz stereo and loudness-normalised to -16 LUFS, then measured.
+2. **Sync.** Scene `i` must last `lead + speech + tail`:
+   - lead = 0.2 s (first scene) or ≈0.33 s (lands during the transition);
+   - tail = transition + 0.2 s, or 0.9 s for the last scene.
+
+   Scenes grow when narration is longer and return toward their planned length when it's shorter, never below a per-type minimum for the visuals. Speech is never time-stretched. Re-timing is reported as a warning.
+3. **Music.** Loudness-normalised, looped (`loop`), trimmed to the video, faded in and out. While a line plays it ducks to `duckVolume`, with a 0.12 s attack and 0.3 s release.
+4. **SFX.**
+   - `auto`: the style preset maps scene events to effects with priorities. The budget is ≈3–7 per 15 s, at least 0.35 s apart, and effects that land under speech are softened by ≈4 dB.
+   - Explicit cues: placed at their `time` or at `scene` + `offset`.
+
+   Anything past the end is trimmed or dropped, with a warning.
+5. **Mix.** `<AdAudio>` in the Remotion composition places each voice clip and effect in a `<Sequence>`, and plays the music with a frame-accurate volume curve (`loopVolumeCurveBehavior: "extend"`). Remotion renders the final AAC track; there is no separate merge step.
+
+**Audio presets** (`scripts/audio/presets.mjs`):
+
+| | voice (local / ElevenLabs) | music bed | max SFX | typical effects |
+|---|---|---|---|---|
+| luxury | rms / deep calm male, 0.95× | slow cinematic pad, 0.16 → 0.045 | 3 | cinematic-hit on reveal, shine on logo/end |
+| streetwear | kal16 / energetic young male | boom-bap beat, 0.2 → 0.05 | 5 | impact hook, whoosh reveal, price-pop, swipe, CTA click |
+| viral | kal16 / fast energetic, 1.08× | four-on-the-floor, 0.2 → 0.05 | 7 | impact, whoosh, swipe, price-pop + cash, riser, click, transition whooshes |
+| clean | slt / clear friendly female | light groove, 0.15 → 0.045 | 4 | soft whoosh, pop, click |
+| sale | kal16 / energetic announcer, 1.05× | high-energy beat, 0.2 → 0.055 | 6 | impact, cash + price-pop, riser, impact on CTA |
+
+**Sound library** (`scripts/audio/library.mjs`, generated by ffmpeg into `engine/audio-library/`): whoosh, transition, swipe, impact, cinematic-hit, pop, price-pop, click, cash, shine, rise. Aliases: hit, boom, cta, ding, sparkle, riser, slide, wipe. There is also one generated demo music loop per style. Everything is synthesised locally, so there are no licensing issues; it's labelled DEMO MUSIC.
+
+**Output:**
+
+```
+brag-output/<render>/
+  ad.mp4  poster.jpg  storyboard.md  report.json  spec.json  spec.resolved.json  qa/
+  audio/
+    voiceover.mp3        all voice lines at their final positions
+    music.mp3            the bed as mixed (looped, trimmed, faded, ducked)
+    sfx/                 the effect files used
+    audio-timeline.json  scenes (planned → final), voice segments, music + duck ranges, SFX — all in seconds
+```
+
+**Audio QA** (`scripts/audio/qa.mjs`, on the final MP4, added to `report.json` → `audio.metrics`):
+
+| | |
+|---|---|
+| **Errors** | no audio stream · codec not AAC/MP3 · sample rate < 44.1 kHz · audio vs video length off by more than 0.1 s · audio past the final frame · peak ≥ 0 dBFS · near-silent mix · a voice line below -38 dB in the mix · voice not ≥ 3 dB above music-only passages · ducked music not ≥ 6 dB below the voice · silent CTA · SFX past the end |
+| **Warnings** | silent gaps (> 0.8 s with music, > 2.5 s voice-only) · hot peaks · scene re-timing · DEMO voice fallback |
+
 ## Licences
 
-Remotion is free for individuals and companies with up to 3 employees; larger companies need a Remotion company licence (remotion.dev/license). The bundled fonts (Anton, Archivo Black, Inter, Playfair Display) are SIL Open Font License.
+Remotion is free for individuals and companies with up to 3 employees; larger companies need a Remotion company licence (remotion.dev/license). The bundled fonts (Anton, Archivo Black, Inter, Playfair Display) are SIL Open Font License. The SFX and demo music are generated locally by `scripts/audio/library.mjs`. User-supplied music and voice must be licensed for the intended use. ElevenLabs usage is subject to the user's ElevenLabs plan and terms.

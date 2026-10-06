@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {AbsoluteFill, Audio, cancelRender, continueRender, delayRender, interpolate, staticFile, useVideoConfig} from 'remotion';
+import {AbsoluteFill, cancelRender, continueRender, delayRender, useVideoConfig} from 'remotion';
 import {TransitionSeries} from '@remotion/transitions';
 import {AdProvider} from './context';
 import {loadAllFonts} from './fonts';
@@ -7,10 +7,11 @@ import {renderScene} from './scenes';
 import {transitionSeconds, type AdSpec} from './spec';
 import {resolveTheme} from './theme';
 import {Background, presentationFor, timingFor} from './components';
+import {AdAudio} from './components/AdAudio';
 
 /** The whole ad: persistent background + scenes joined by on-style transitions. */
 export const BragAd: React.FC<AdSpec> = (spec) => {
-  const {fps, durationInFrames} = useVideoConfig();
+  const {fps} = useVideoConfig();
   const theme = resolveTheme(spec);
   const [ready, setReady] = useState(false);
   const [handle] = useState(() => delayRender('Loading fonts'));
@@ -45,12 +46,8 @@ export const BragAd: React.FC<AdSpec> = (spec) => {
             return items;
           })}
         </TransitionSeries>
-        {spec.audio && (
-          <Audio
-            src={staticFile(spec.audio)}
-            volume={(f) => interpolate(f, [0, 10, durationInFrames - 20, durationInFrames], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}
-          />
-        )}
+        {/* audioResolved is produced by scripts/render.mjs; visual-only ads have none */}
+        {spec.audioResolved && <AdAudio audio={spec.audioResolved} />}
       </AbsoluteFill>
     </AdProvider>
   );

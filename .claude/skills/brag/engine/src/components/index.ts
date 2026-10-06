@@ -14,3 +14,4 @@ export {BeforeAfter} from './BeforeAfter';
 export {FinalFrame} from './FinalFrame';
 export {presentationFor, timingFor, zoomPunch} from './Transitions';
 export {SafeArea, useSafe, useInFrame} from './SafeArea';
+export {AdAudio, musicVolume, duckAmount} from './AdAudio';
