@@ -45,11 +45,11 @@ Extract the following from the request and the conversation. Don't ask questions
 
 Write a one-sentence `concept`, then choose scenes. Durations are in seconds, and each transition overlaps the neighbouring scenes:
 
-`total = sum(scene durations) − (number of scenes − 1) × transition` (default transition 0.45s, so 15s ≈ 16.8s of scenes for 5 scenes).
+`total = sum(scene durations) − (number of scenes − 1) × transition`. The default transition is 0.45s, which renders as 14 frames = 0.467s at 30fps. So for 15s with 5 scenes, the scene durations must sum to about **16.87s**; with 4 scenes, about 16.4s. Always do this arithmetic. The renderer's duration warning tells you if you're off.
 
 Recommended structures:
 
-- **15s product ad:** `hook` 2.6 → `productReveal` 3.0 → `productZoom` 2.6 → `price` 2.8 (if a price is known) → `final` 4.6
+- **15s product ad:** `hook` 2.8 → `productReveal` 3.3 → `productZoom` 3.0 → `price` 3.1 (if a price is known) → `final` 4.67 (= 15.0s)
 - **Luxury:** `logo` 2.4 → `statement` 2.6 → `productReveal` 3.2 → `features` 3.4 (if facts were given) → `final` 4.2, with `"transition": {"duration": 0.6}`
 - **Viral/TikTok:** short scenes (2–2.6s), `"transition": {"duration": 0.35}`, `hook` in the first 2s, finish with `cta` or `final`
 - **Sale/event:** `sale` → `productReveal` → `price` → `final`
