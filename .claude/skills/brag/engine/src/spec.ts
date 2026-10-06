@@ -33,7 +33,17 @@ export type Scene =
   | {type: 'sale'; duration: number; text: string; subtext?: string}
   | {type: 'logo'; duration: number; tagline?: string}
   | {type: 'cta'; duration: number; headline?: string}
-  | {type: 'final'; duration: number; headline?: string};
+  | {type: 'final'; duration: number; headline?: string}
+  | {type: 'showcase'; duration: number; title?: string; items: ShowcaseItem[]};
+
+/** One product in a showcase. Label/price/sublabel must come from the user — never invented. */
+export type ShowcaseItem = {
+  image: string;                 // resolved path
+  label: string;                 // e.g. "Nike Air Force 1 Low", or a brand name when the photo isn't the exact model
+  sublabel?: string;
+  price?: string;                // exactly as given
+  focus?: string;                // CSS object-position for the crop, e.g. "50% 60%"
+};
 
 export type AdSpec = {
   title?: string;
@@ -58,7 +68,7 @@ export type FontKey = 'anton' | 'archivo' | 'inter' | 'playfair';
 
 export const SCENE_TYPES = [
   'hook', 'statement', 'productReveal', 'productZoom', 'features', 'beforeAfter',
-  'price', 'sale', 'logo', 'cta', 'final',
+  'price', 'sale', 'logo', 'cta', 'final', 'showcase',
 ] as const;
 
 export const transitionSeconds = (spec: AdSpec) =>

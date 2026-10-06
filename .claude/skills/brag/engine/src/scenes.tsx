@@ -1,6 +1,7 @@
 import React from 'react';
 import {useVideoConfig} from 'remotion';
 import {useAd} from './context';
+import {Showcase} from './components/Showcase';
 import type {Scene} from './spec';
 import {
   BeforeAfter, CTAButton, FeatureList, FinalFrame, Hook, KineticText, LogoReveal, PriceBadge, ProductImage,
@@ -58,6 +59,8 @@ export const renderScene = (scene: Scene, durationInFrames: number): React.React
       return <CtaScene headline={scene.headline} />;
     case 'final':
       return <FinalFrame headline={scene.headline} />;
+    case 'showcase':
+      return <Showcase title={scene.title} items={scene.items} durationInFrames={durationInFrames} />;
     default:
       return null;
   }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {before, describe, test} from 'node:test';
-import {audioStream, byTitle, makeMusicFile, makeSfxFile, makeVoiceFile, meanDb, render, scenes, spec, tmp, voiceScript, writeSpecs} from './helpers.mjs';
+import {SAMPLE_PRODUCT, audioStream, byTitle, makeMusicFile, makeSfxFile, makeVoiceFile, meanDb, render, scenes, spec, tmp, voiceScript, writeSpecs} from './helpers.mjs';
 
 const local = (extra = {}) => ({provider: 'flite', script: voiceScript, ...extra});
 let run;          // one CLI invocation renders all the "normal" cases (bundle once)
@@ -34,6 +34,11 @@ before(() => {
     'audio-longer': spec({style: 'streetwear', audio: {voiceover: {provider: 'flite', script: [
       {scene: 0, text: 'Your favourite sneakers took you everywhere this year, and now they need some care.'},
       {scene: 3, text: 'Shop now.'}]}, music: {}, sfx: 'auto'}}),
+    'showcase': spec({style: 'luxury', scenes: [
+      {type: 'hook', duration: 2.2, text: 'The *range*'},
+      {type: 'showcase', duration: 4.2, title: 'Line-up', items: [
+        {image: SAMPLE_PRODUCT, label: 'Kit One', price: 'R299'}, {image: SAMPLE_PRODUCT, label: 'Kit Two', sublabel: 'Travel size'}, {image: SAMPLE_PRODUCT, label: 'Kit Three'}]},
+      {type: 'final', duration: 2.8}], audio: {voiceover: local({script: [{scene: 0, text: 'The range.'}, {scene: 1, text: 'Three kits.'}, {scene: 2, text: 'Shop now.'}]}), music: {}, sfx: 'auto'}}),
   };
   run = render(writeSpecs(dir, specs));
 });
@@ -156,6 +161,29 @@ describe('renders', () => {
     assert.ok(line.end <= t.sync.scenes[1].start + 0.01, 'first line ends before the next scene takes over');
     assert.ok(r.warnings.some((w) => /re-timed/.test(w)));
     assert.ok(Math.abs(r.file.duration - t.duration) < 0.05, 'video length follows the narration');
+  });
+});
+
+describe('showcase', () => {
+  test('15. multi-product showcase: every item labelled, a swipe on each item change', () => {
+    const r = ok('showcase');
+    const board = fs.readFileSync(path.join(r.outDir, 'storyboard.md'), 'utf8');
+    for (const label of ['Kit One R299', 'Kit Two', 'Kit Three']) assert.ok(board.includes(label), label);
+    const swipes = timeline(r).sfx.filter((e) => /showcase item/.test(e.reason));
+    assert.deepEqual(swipes.map((e) => e.reason), ['showcase item 2', 'showcase item 3']);
+    assert.ok(swipes[0].start < swipes[1].start);
+  });
+
+  test('16. showcase with one item or a missing image → FAIL before rendering', () => {
+    const dir = tmp('showcase-bad');
+    const res = render(writeSpecs(dir, {'bad-showcase': spec({scenes: [
+      {type: 'showcase', duration: 3, items: [{image: SAMPLE_PRODUCT, label: 'Only one'}]},
+      {type: 'showcase', duration: 3, items: [{image: 'missing.jpg', label: 'A'}, {label: 'B'}]}]})}));
+    assert.equal(res.code, 1);
+    const msg = res.reports[0].errors.join(' | ');
+    assert.match(msg, /items must list 2–8 products/);
+    assert.match(msg, /missing\.jpg/);
+    assert.match(msg, /items\[1\]/);
   });
 });
 

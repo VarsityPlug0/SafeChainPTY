@@ -53,6 +53,7 @@ Recommended structures:
 - **Luxury:** `logo` 2.4 → `statement` 2.6 → `productReveal` 3.2 → `features` 3.4 (if facts were given) → `final` 4.2, with `"transition": {"duration": 0.6}`
 - **Viral/TikTok:** short scenes (2–2.6s), `"transition": {"duration": 0.35}`, `hook` in the first 2s, finish with `cta` or `final`
 - **Sale/event:** `sale` → `productReveal` → `price` → `final`
+- **Collection / range (several products):** `logo` → `statement` → `showcase` 7.2 (4 items) → `final` 4.2. Label and price each item only with what the user or store actually lists; if a photo doesn't show the named model, label it at brand level or leave it out.
 - **Before/after (user photos):** `hook` → `beforeAfter` 3.2 → `productReveal` → `final`
 
 Copy rules:

@@ -18,7 +18,7 @@ const MUSIC_EXT = /\.(mp3|wav|m4a|aac|ogg|flac)$/i;
 /** Shortest a scene may become when re-timed to narration (its animation must still read). */
 export const SCENE_MIN = {
   hook: 1.6, statement: 1.6, productReveal: 2.0, productZoom: 1.6, features: 2.4, beforeAfter: 2.4,
-  price: 1.8, sale: 1.8, logo: 1.6, cta: 2.2, final: 2.6,
+  price: 1.8, sale: 1.8, logo: 1.6, cta: 2.2, final: 2.6, showcase: 3.0,
 };
 const GAP = 0.15;                       // pause between two lines in the same scene
 const lead = (i, t) => (i === 0 ? 0.2 : Math.min(0.35, t * 0.7));   // voice starts as the scene lands
@@ -274,12 +274,20 @@ export async function planAudio(spec, ctx) {
       for (const [name, offset, priority, volume] of preset.sceneSfx[s.type] ?? []) {
         candidates.push({type: name, start: starts[i] + offset, priority, volume, reason: `${s.type} (scene ${i + 1})`});
       }
+      if (s.type === 'showcase' && Array.isArray(s.items)) {
+        // same timing as the Showcase component: a soft swipe as each new item swings into focus
+        const fFrames = Math.round(s.duration * fps);
+        const leadF = Math.round(0.25 * fps);
+        const per = Math.max(1, Math.floor((fFrames - leadF - Math.round(0.35 * fps)) / s.items.length));
+        s.items.forEach((_, k) => { if (k > 0) candidates.push({type: 'swipe', start: starts[i] + (leadF + k * per) / fps - 0.2, priority: 2, volume: 0.3, reason: `showcase item ${k + 1}`, showcase: true}); });
+      }
       if (i > 0 && preset.transitionSfx) {
         const [name, priority, volume] = preset.transitionSfx;
         candidates.push({type: name, start: starts[i] + t * 0.15, priority, volume, reason: `transition into scene ${i + 1}`});
       }
     });
-    const budget = audio.maxSfx ?? Math.round(preset.maxSfx * Math.min(1.5, Math.max(0.7, total / 15)));
+    const showcaseCues = candidates.filter((c) => c.showcase).length;
+    const budget = audio.maxSfx ?? Math.round(preset.maxSfx * Math.min(1.5, Math.max(0.7, total / 15))) + showcaseCues;
     const chosen = [];
     for (const c of [...candidates].sort((a, b) => a.priority - b.priority || a.start - b.start)) {
       if (chosen.length >= budget) break;

@@ -43,6 +43,7 @@ Every scene has `"duration"` in seconds (0.8–10).
 | `sale` | `text`*, `subtext` | Crossing marquee tapes plus a slammed event headline |
 | `logo` | `tagline` | Logo wipe-in, or a tracking-in wordmark with drawn underline |
 | `cta` | `headline` | Headline plus the CTA button (spring, pulse, glow ring, nudging arrow) |
+| `showcase` | `title?`, `items` (2–8 × `{image, label, sublabel?, price?, focus?}`) | Multi-product 3D carousel: each item swings into focus on a framed card, neighbours peek at the sides, with its own label/price, an "01 / 04" counter and progress line. Needs ≥ 0.9s per item + 0.6s; a soft swipe SFX plays on each item change |
 | `final` | `headline` | End card: brand, floating product, price badge, headline, CTA (hold ≥ 2s) |
 
 \* required. The last scene must be `final` or `cta`.
@@ -66,6 +67,7 @@ All take their colours and fonts from the active style (`useAd()`), sizes scale 
 | `Background` | Gradient, two parallax light layers, style pattern (grid/stripes/rays/orbs), animated film grain, vignette |
 | `KineticText` | Word-by-word typography: `rise` (masked), `slam`, `pop`, `fade`. Auto-size/wrap; `*highlight*` support; DOM width QA |
 | `Hook` | Opening scroll-stopper built from KineticText |
+| `Showcase` | Carousel used by the `showcase` scene (`showcaseTiming` is shared with the audio planner) |
 | `ProductImage` / `PlaceholderProduct` | User photo (contain-fit, shadow, idle float; `product.imageFrame: "card"` gives photos with a background a rounded, gold-edged frame) or a branded 3D placeholder package tagged DEMO |
 | `ProductReveal` | Circular mask reveal + settle + light sweep |
 | `ProductZoom` | Camera push-in with parallax layers |

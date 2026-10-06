@@ -17,7 +17,7 @@ import {normalizeAudio, planAudio} from './audio/plan.mjs';
 import {auditAudio, exportStems} from './audio/qa.mjs';
 
 const ENGINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SCENE_TYPES = ['hook', 'statement', 'productReveal', 'productZoom', 'features', 'beforeAfter', 'price', 'sale', 'logo', 'cta', 'final'];
+const SCENE_TYPES = ['hook', 'statement', 'productReveal', 'productZoom', 'features', 'beforeAfter', 'price', 'sale', 'logo', 'cta', 'final', 'showcase'];
 const STYLES = ['luxury', 'streetwear', 'clean', 'viral', 'sale'];
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|svg|avif)$/i;
 const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg)$/i;
@@ -132,6 +132,17 @@ function prepare(specPath, runId) {
     if (['hook', 'statement', 'sale'].includes(s.type) && !s.text) errors.push(`${where}: text is required`);
     if (s.type === 'features' && !(Array.isArray(s.items) && s.items.length)) errors.push(`${where}: items are required`);
     if (s.type === 'price' && !spec.product?.price) errors.push(`${where}: product.price is required for a price scene`);
+    if (s.type === 'showcase') {
+      if (!Array.isArray(s.items) || s.items.length < 2 || s.items.length > 8) errors.push(`${where}: items must list 2–8 products`);
+      else {
+        s.items.forEach((it, k) => {
+          if (!it.label) errors.push(`${where}.items[${k}]: label is required`);
+          if (!it.image) errors.push(`${where}.items[${k}]: image is required`);
+          else it.image = asset(it.image, 'image', `${where}.items[${k}].image`);
+        });
+        if (s.duration < s.items.length * 0.9 + 0.6) errors.push(`${where}: allow at least ${(s.items.length * 0.9 + 0.6).toFixed(1)}s for ${s.items.length} items`);
+      }
+    }
     if (s.type === 'beforeAfter') {
       s.before = asset(s.before, 'image', `${where}.before`);
       s.after = asset(s.after, 'image', `${where}.after`);
@@ -192,7 +203,7 @@ function storyboard(spec, fps, audioPlan = null) {
     const from = start;
     const to = from + s.duration;
     start = to - t;
-    const text = [s.text, s.subtext, s.headline, s.title, s.caption, s.label, s.tagline, ...(s.items || [])].filter(Boolean).join(' / ') || '—';
+    const text = [s.text, s.subtext, s.headline, s.title, s.caption, s.label, s.tagline, ...(s.items || []).map((it) => (typeof it === 'string' ? it : `${it.label}${it.price ? ` ${it.price}` : ''}`))].filter(Boolean).join(' / ') || '—';
     return `| ${i + 1} | ${from.toFixed(2)}–${to.toFixed(2)}s | ${s.type} | ${text.replace(/\|/g, '/')} | ${s.notes || ''} |`;
   });
   return [
@@ -221,7 +232,7 @@ function sceneBlocks(spec, t, audioPlan) {
     const from = start;
     const to = from + s.duration;
     start = to - t;
-    const text = [s.text, s.subtext, s.headline, s.title, s.caption, s.label, s.tagline, ...(s.items || [])].filter(Boolean).join(' / ');
+    const text = [s.text, s.subtext, s.headline, s.title, s.caption, s.label, s.tagline, ...(s.items || []).map((it) => (typeof it === 'string' ? it : `${it.label}${it.price ? ` ${it.price}` : ''}`))].filter(Boolean).join(' / ');
     const note = audioPlan?.notes?.[i] ?? {voice: '—', music: '—', sfx: '—'};
     return [
       `**${from.toFixed(2)}–${to.toFixed(2)}s · ${i + 1}. ${s.type}**`,
